@@ -1,20 +1,32 @@
 let boardRow = 16;
 let boardCol = 16;
 let mineTotal = 40;
+let cellWidth = 50;
 
 function setup() {
-  createCanvas(boardRow*50, boardCol*50);
-  
-  let gameboard = createGameboard();
-  console.log(gameboard[0]);
+  createCanvas(boardRow * cellWidth + 50, boardCol * cellWidth + 50);
+
+  gameboard = createGameboard();
 }
 
 function draw() {
-  // orbitControl();
   background(220);
-  noFill();
-  
-  square(0, 0, 50)
+
+  for (let i = 0; i < boardRow; i++) {
+    for (let j = 0; j < boardCol; j++) {
+      gameboard[i][j].display();
+    }
+  }
+}
+
+function mouseClicked() {
+  for (let i = 0; i < boardRow; i++) {
+    for (let j = 0; j < boardCol; j++) {
+      if (gameboard[i][j].mouseOver(mouseX, mouseY)) {
+        gameboard[i][j].reveal();
+      }
+    }
+  }
 }
 
 function getRandomInt() {
@@ -22,50 +34,65 @@ function getRandomInt() {
 }
 
 function createGameboard() {
-  const board = new Array(boardCol).fill(new Array(boardRow).fill(null));
-  
-  // for(let i = 0; i < boardCol; i++) {
-  //   for(let j = 0; j < baoardRow; j++) {
-  //     board
-  //   }
-  // }
-  
-  // let i = 0;
-  // while(1) {
-  //   let randRow = getRandomInt();
-  //   let randCol = getRandomInt();
-  //   if(board[randRow][randCol] == 1) {
-  //     continue;
-  //   }else {
-  //     board[randRow][randCol] = 1;
-  //     i++;
-  //   }
-  //   if(i == mineTotal) {
-  //     break;
-  //   }
-  // }
-  
+  var board = new Array(boardRow);
+  for (let i = 0; i < boardCol; i++) {
+    board[i] = new Array(boardCol);
+  }
+
+  for (let i = 0; i < boardRow; i++) {
+    for (let j = 0; j < boardCol; j++) {
+      let tempCell = new Cell(i, j, cellWidth);
+      board[i][j] = tempCell;
+    }
+  }
+
+  let k = 0;
+  while (1) {
+    let randRow = getRandomInt();
+    let randCol = getRandomInt();
+    if (board[randRow][randCol] == true) {
+      continue;
+    } else {
+      board[randRow][randCol].mine = true;
+      k++;
+    }
+    if (k == mineTotal) {
+      break;
+    }
+  }
+
+  for (let i = 0; i < boardRow; i++) {
+    for (let j = 0; j < boardCol; j++) {
+      board[i][j].neighborCount = countMines(board, board[i][j]);
+    }
+  }
+
   return board;
 }
 
-function countMines(gameboard, cell){
-  let total=0;
-  
-  if(cell.mine==true) {
+function countMines(gameboard, cell) {
+  let total = 0;
+
+  if (cell.mine == true) {
     return 9;
   }
-  
-  for(let i = -1; i < 2; i++) {
-    for(let j = -1; j < 2; j++) {
+
+  for (let i = -1; i < 2; i++) {
+    for (let j = -1; j < 2; j++) {
       let indexX = cell.x + i;
       let indexY = cell.y + j;
-      if(indexX > -1 && indexX < gameboard.length && indexY > -1 && indexY < gameboard[0].length) {
-        if(gameboard[indexX][indexY].mine) {
-          total ++;
+      if (
+        indexX > -1 &&
+        indexX < gameboard.length &&
+        indexY > -1 &&
+        indexY < gameboard[0].length
+      ) {
+        if (gameboard[indexX][indexY].mine) {
+          total++;
         }
       }
     }
   }
-  
+
   return total;
 }
