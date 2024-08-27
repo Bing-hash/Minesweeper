@@ -27,9 +27,12 @@ class StartMine{
       
   }
   
-  display() {
+  display(mineScale) {
     // Drawing mine
+    push();
+    scale(mineScale);
     model(this.mineModel);
+    pop();
     // Drawing Hertz horns
     model(this.hornModel);
 
