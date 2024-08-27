@@ -23,7 +23,38 @@ function mouseClicked() {
   for (let i = 0; i < boardRow; i++) {
     for (let j = 0; j < boardCol; j++) {
       if (gameboard[i][j].mouseOver(mouseX, mouseY)) {
-        gameboard[i][j].reveal();
+        mineReveal(gameboard[i][j]);
+      }
+    }
+  }
+}
+
+function mineReveal(cell) {
+  if (cell.revealed) {
+    return;
+  }
+  cell.reveal();
+
+  if (cell.neighborCount == 0) {
+    for (let k = -1; k < 2; k++) {
+      for (let l = -1; l < 2; l++) {
+        let indexX = cell.x + k;
+        let indexY = cell.y + l;
+        if (
+          indexX > -1 &&
+          indexX < gameboard.length &&
+          indexY > -1 &&
+          indexY < gameboard[0].length
+        ) {
+          if (
+            gameboard[indexX][indexY].x == cell.x &&
+            gameboard[indexX][indexY].y == cell.y
+          ) {
+            continue;
+          } else {
+            mineReveal(gameboard[indexX][indexY]);
+          }
+        }
       }
     }
   }
