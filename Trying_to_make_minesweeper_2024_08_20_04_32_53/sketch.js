@@ -2,38 +2,92 @@ let boardRow = 16;
 let boardCol = 16;
 let mineTotal = 40;
 let cellWidth = 50;
+let gameState = 3;
+let cellWinTotal = boardRow * boardCol - mineTotal;
+let currCellCount;
 
 function setup() {
+  for (let element of document.getElementsByClassName("p5Canvas")) {
+    element.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
   createCanvas(boardRow * cellWidth + 50, boardCol * cellWidth + 50);
-
-  gameboard = createGameboard();
 }
 
 function draw() {
   background(220);
 
-  for (let i = 0; i < boardRow; i++) {
-    for (let j = 0; j < boardCol; j++) {
-      gameboard[i][j].display();
+  if (gameState == 3) {
+    currCellCount = 0;
+    gameboard = createGameboard();
+    fillGameboard(gameboard);
+    gameState = 4;
+  } else if (gameState == 4) {
+    currCellCount = checkOpenCellCount(gameboard);
+    for (let i = 0; i < boardRow; i++) {
+      for (let j = 0; j < boardCol; j++) {
+        gameboard[i][j].display();
+      }
     }
+    if (currCellCount == cellWinTotal) {
+      gameState = 6;
+    }
+  } else if (gameState == 5) {
+    for (let i = 0; i < boardRow; i++) {
+      for (let j = 0; j < boardCol; j++) {
+        gameboard[i][j].display();
+      }
+    }
+  } else if (gameState == 6) {
+    for (let i = 0; i < boardRow; i++) {
+      for (let j = 0; j < boardCol; j++) {
+        gameboard[i][j].display();
+      }
+    }
+    stroke("green");
+    strokeWeight(10);
+    text("You Win", 100, 100);
   }
 }
 
-function mouseClicked() {
-  for (let i = 0; i < boardRow; i++) {
-    for (let j = 0; j < boardCol; j++) {
-      if (gameboard[i][j].mouseOver(mouseX, mouseY)) {
-        mineReveal(gameboard[i][j]);
+function keyPressed() {
+  if (keyCode == 32) {
+    gameState = 3;
+  }
+
+  return false;
+}
+
+function mousePressed(event) {
+  if (gameState == 4) {
+    if (event.button == 2) {
+      for (let i = 0; i < boardRow; i++) {
+        for (let j = 0; j < boardCol; j++) {
+          if (gameboard[i][j].mouseOver(mouseX, mouseY)) {
+            gameboard[i][j].flag();
+          }
+        }
+      }
+    } else {
+      for (let i = 0; i < boardRow; i++) {
+        for (let j = 0; j < boardCol; j++) {
+          if (gameboard[i][j].mouseOver(mouseX, mouseY)) {
+            mineReveal(gameboard[i][j]);
+          }
+        }
       }
     }
   }
 }
 
 function mineReveal(cell) {
-  if (cell.revealed) {
+  if (cell.revealed || cell.flagged) {
     return;
   }
   cell.reveal();
+  if (cell.mine) {
+    gameState = 5;
+    return;
+  }
 
   if (cell.neighborCount == 0) {
     for (let k = -1; k < 2; k++) {
@@ -77,11 +131,15 @@ function createGameboard() {
     }
   }
 
+  return board;
+}
+
+function fillGameboard(board) {
   let k = 0;
   while (1) {
     let randRow = getRandomInt();
     let randCol = getRandomInt();
-    if (board[randRow][randCol] == true) {
+    if (board[randRow][randCol].mine == true) {
       continue;
     } else {
       board[randRow][randCol].mine = true;
@@ -97,8 +155,6 @@ function createGameboard() {
       board[i][j].neighborCount = countMines(board, board[i][j]);
     }
   }
-
-  return board;
 }
 
 function countMines(gameboard, cell) {
@@ -126,4 +182,16 @@ function countMines(gameboard, cell) {
   }
 
   return total;
+}
+
+function checkOpenCellCount(board) {
+  count = 0;
+  for (let i = 0; i < boardRow; i++) {
+    for (let j = 0; j < boardCol; j++) {
+      if (board[i][j].revealed) {
+        count++;
+      }
+    }
+  }
+  return count;
 }
