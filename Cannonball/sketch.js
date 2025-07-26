@@ -1,3 +1,18 @@
+/*
+  To-do:
+    - Fix inconsistencies accross gamestates in draw loop. Functions should be in the same 
+    order.
+    - Change 3D mine to draw from the sketch file, similar to others
+    - Look into using shaders to play with vertices.
+    - Try loading multiple games, and place them on the different faces of the cube. Rotate
+    cube when a game is complete.
+    - Create something to tell player information, game over, you win, etc. Maybe use a 
+    pane.
+    
+    - Continue to clean up old commented-out code, uneeded variables, and create consistency
+    across similar functions.
+*/
+
 // Global Variables
 
 // Variable keeping track of the current game state.
@@ -5,6 +20,7 @@ let gameState = 0;
 
 // The rotation speed of the 3D mine is determined by 
 let timer = 0;
+let baselineForBoxAnimationTimer;
 
 let mineScale = 1;
 
@@ -29,10 +45,10 @@ function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
   
   // Creates the object associated with the 3D mine rendered in the background.
-  testMine = new StartMine(100, 16, 8, 10, 275, 7, 1, true, true, 10);
+  mineModel = new StartMine(100, 16, 8, 10, 275, 7, 1, true, true, 10);
   
   // Creates the main camera used in the 3D space.
-  cam = createCamera();
+  mainCam = createCamera();
   
   // Camera used at the beginning of the intro animation.
   cam1 = createCamera();
@@ -51,7 +67,7 @@ function setup() {
   gameCam.camera(0,0,140);
   
   // Sets the camera for the world to the main camera.
-  setCamera(cam);
+  setCamera(mainCam);
   
   
   //Game setup
@@ -75,12 +91,12 @@ function setup() {
   
   
   detectionPlate = createGraphics(boardRow * cellWidth, boardCol * cellWidth);
-  detectionPlate.strokeWeight(0);
   
   let index = 0;
   for(let i = 0; i < boardRow; i++){
     for(let j = 0; j < boardCol; j++){
       detectionPlate.fill(0, 0, 0+index)
+      detectionPlate.stroke(255,255,255);
       detectionPlate.square(
           j * cellWidth,
           i * cellWidth,
@@ -89,22 +105,24 @@ function setup() {
       index ++;
     }
   }
+  
+  beginGeometry();
+  box(1,1);
+  gameBox = endGeometry();
 
 }
 
 // The draw() function is run at the beginning of every frame. It is used to draw objects
 // to the canvas, update variabes, run game logic, and more.
 function draw() {
+  frameRate(60);
   incTimer();
   background(0);
   
-  beginGeometry();
-  box(1,1);
-  test = endGeometry();
-
-
-  // console.log(cam.eyeX, cam.eyeY, cam.eyeZ);
   
+
+
+
   
   // The start animation will run at the beginning of runtime. The main camera's position is
   // updated every frame to a point between cam1 and cam2. This is achieved through the 
@@ -116,7 +134,7 @@ function draw() {
     if (amt >= 0.999999) {
       gameState ++;
     }
-    cam.slerp(cam1, cam2, amt);
+    mainCam.slerp(cam1, cam2, amt);
   }
   
   // Once the start animation is finished, the player can hover the mouse over the 3D mine,
@@ -126,22 +144,21 @@ function draw() {
   if(gameState == 1) {
     
     if(mouseOverStartingMine()){
-      cam.slerp(cam, cam3, 0.3);
+      mainCam.slerp(mainCam, cam3, 0.3);
       
     }else{
-      if(cam.eyeX < 599){
-        artificialTimer = 0;
-        cam.slerp(cam, cam2, 0.3);
+      if(mainCam.eyeX < 599){
+        mainCam.slerp(mainCam, cam2, 0.3);
       }
     }
   }
   
   else if(gameState == 2) {
-      cam.slerp(cam, gameCam, 0.1);
+      mainCam.slerp(mainCam, gameCam, 0.1);
       mineScale = 2;
       
-    if(cam.eyeZ <= 141){
-      cam.slerp(cam, gameCam, 1.0);
+    if(mainCam.eyeZ <= 141){
+      mainCam.slerp(mainCam, gameCam, 1.0);
       gameState = 3;
     }
   }
@@ -149,53 +166,35 @@ function draw() {
   //Game state IFs
   else if (gameState == 3) {
     gameboardPainting = createGraphics(boardRow * cellWidth, boardCol * cellWidth);
-
-    
     currCellCount = 0;
     gameboard = createGameboard();
     fillGameboard(gameboard);
+    baselineForBoxAnimationTimer = frameCount;
     
-  
     gameState = 4;
-  } else if (gameState == 4) {
-      
+  } else if (gameState == 4) { 
     drawGameboard();
-    
-    let colorValue = detectionSpace.get(mouseX, mouseY);
-    // console.log(colorValue);
-//   console.log('Row: ' + (1+Math.floor(colorValue/boardRow)).toString() + ' Col: ' + (1+colorValue%boardRow).toString());
-    
+    drawGamebox();
     drawDetectionSpace();
     currCellCount = checkOpenCellCount(gameboard);
-    for (let i = 0; i < boardRow; i++) {
-      for (let j = 0; j < boardCol; j++) {
-        gameboard[i][j].display();
-      }
-    }
     if (currCellCount == cellWinTotal) {
       gameState = 6;
     }
   } else if (gameState == 5) {
     
     
-    for (let i = 0; i < boardRow; i++) {
-      for (let j = 0; j < boardCol; j++) {
-        gameboard[i][j].display();
-      }
-    }
-    drawGameboard();
-  } else if (gameState == 6) {
-    drawGameboard();
     
-    for (let i = 0; i < boardRow; i++) {
-      for (let j = 0; j < boardCol; j++) {
-        gameboard[i][j].display();
-      }
-    }
+    drawGameboard();
+    drawGamebox();
+  } else if (gameState == 6) {
+    drawGamebox();
+    
+    drawGameboard();
+   
     gameboardPainting.stroke("green");
     gameboardPainting.strokeWeight(10);
     gameboardPainting.text("You Win", 100, 100);
-    drawGameboard();
+    drawGamebox();
   }
   
   
@@ -203,31 +202,125 @@ function draw() {
   
   drawMine();
   
-  
-  // console.log(gameState + ' ' + cellWidth + ' ' + cam.eyeX + ' ' + cam.eyeY + ' ' + cam.eyeZ);
-  
 }
 
 function drawGameboard(){
-  
-  
-  translate(0,0,30);
+  // Draw gameboard to buffer.
+  for (let i = 0; i < boardRow; i++) {
+      for (let j = 0; j < boardCol; j++) {
+        
+        // If the mine is revealed.
+        if (gameboard[i][j].revealed) {
+          // If the cell contains a mine.
+          if (gameboard[i][j].mine) {
+            gameboardPainting.fill("white");
+            gameboardPainting.square(
+              gameboard[i][j].x * cellWidth,
+              gameboard[i][j].y * cellWidth,
+              cellWidth
+            );
+            gameboardPainting.ellipse(
+              gameboard[i][j].x * cellWidth + cellWidth / 2,
+              gameboard[i][j].y * cellWidth + cellWidth / 2,
+              cellWidth / 2
+            );
+            // If the mine contains no mines, and is neighboring 0 mines.
+          } else if (gameboard[i][j].neighborCount == 0) {
+            gameboardPainting.fill("white");
+            gameboardPainting.square(
+              gameboard[i][j].x * cellWidth,
+              gameboard[i][j].y * cellWidth,
+              cellWidth
+            );
+            gameboardPainting.fill("black");
+            // If the mine contains no mines.
+          } else {
+            gameboardPainting.fill("white");
+            gameboardPainting.square(
+              gameboard[i][j].x * cellWidth,
+              gameboard[i][j].y * cellWidth,
+              cellWidth
+            );
+            gameboardPainting.fill("black");
+            gameboardPainting.text(
+              gameboard[i][j].neighborCount,
+              gameboard[i][j].x * cellWidth + cellWidth / 3,
+              gameboard[i][j].y * cellWidth + cellWidth / 30 * 21.5
+            );
+          }
+          // If the mine is not revealed.
+        } else {
+          if (gameboard[i][j].flagged) {
+            gameboardPainting.fill("gray");
+            gameboardPainting.square(
+              gameboard[i][j].x * cellWidth,
+              gameboard[i][j].y * cellWidth,
+              cellWidth
+            );
+
+            gameboardPainting.fill("black");
+            gameboardPainting.line(
+              gameboard[i][j].x * cellWidth + cellWidth / 2,
+              gameboard[i][j].y * cellWidth + cellWidth / 4,
+              gameboard[i][j].x * cellWidth + cellWidth / 2,
+              gameboard[i][j].y * cellWidth + cellWidth / 4 * 3
+            );
+            gameboardPainting.line(
+              gameboard[i][j].x * cellWidth + cellWidth / 2,
+              gameboard[i][j].y * cellWidth + cellWidth / 4,
+              gameboard[i][j].x * cellWidth + cellWidth / 4 ,
+              gameboard[i][j].y * cellWidth + cellWidth / 6 * 2
+            );
+            gameboardPainting.line(
+              gameboard[i][j].x * cellWidth + cellWidth / 4 ,
+              gameboard[i][j].y * cellWidth + cellWidth / 6 * 2,
+              gameboard[i][j].x * cellWidth + cellWidth / 2,
+              gameboard[i][j].y * cellWidth + cellWidth / 6 * 3  
+            );
+            gameboardPainting.fill("gray");
+            gameboardPainting.arc(
+              gameboard[i][j].x * cellWidth + cellWidth / 2,
+              gameboard[i][j].y * cellWidth + cellWidth / 6 * 5,
+              cellWidth/4 * 3,
+              cellWidth/3,
+              PI,
+              0,
+              PIE
+            );
+          } else {
+            gameboardPainting.fill("gray");
+            gameboardPainting.square(
+              gameboard[i][j].x * cellWidth,
+              gameboard[i][j].y * cellWidth,
+              cellWidth
+            );
+          }
+        }
+      }
+    }
+}
+
+function drawGamebox(){
   push();
+  translate(0,0,30);
+  // Zooming in animation
   if(boxScale <50){
-    boxScale ++;
+    passedSinceBaseline = frameCount - baselineForBoxAnimationTimer;
+    boxScale = 50/Math.pow(30,8)*Math.pow(passedSinceBaseline,8);
+    
   }
   scale(boxScale);
   
   texture(gameboardPainting);
-  model(test);
+  strokeWeight(.5);
+  model(gameBox);
   pop();
-  translate(0,0,-30);
 }
 
 function drawDetectionSpace(){
   // Draw detection space in buffer
   
-  detectionSpace.background(255);
+  detectionSpace.background(255,255,255);
   
   detectionSpace.texture(detectionPlate);
   detectionSpace.strokeWeight(0);
@@ -240,7 +333,7 @@ function drawDetectionSpace(){
 function drawMine(){
   push();
   rotateY(timer);
-  testMine.display(mineScale);
+  mineModel.display(mineScale);
   pop();  
 }
 
@@ -253,9 +346,7 @@ function incTimer(){
   if(frameCount <156){
     timer = 6*sin(frameCount*0.01)-5.8433
   }else {
-    // console.log(timer);
     timer = frameCount * 0.001
-    // console.log(timer);
   }
 }
 
@@ -283,25 +374,11 @@ function mousePressed(event) {
     let mouseBoxY = Math.floor(colorValue[2]/boardRow);
     let mouseBoxX = colorValue[2]%boardCol;
     if(colorValue[0] == 0){
-      console.log("Ding");
+
       if (event.button == 2) {
-        console.log("Here!")
-        for (let i = 0; i < boardRow; i++) {
-          for (let j = 0; j < boardCol; j++) {
-            if (gameboard[i][j].mouseOver(mouseBoxX, mouseBoxY)) {
-              gameboard[i][j].flag();
-            }
-          }
-        }
+        gameboard[mouseBoxX][mouseBoxY].flag();
       }else {
-        for (let i = 0; i < boardRow; i++) {
-          for (let j = 0; j < boardCol; j++) {
-            console.log(mouseBoxX+' '+mouseBoxY);
-            if (gameboard[i][j].mouseOver(mouseBoxX, mouseBoxY)) {
-              mineReveal(gameboard[i][j]);
-            }
-          }
-        }
+        mineReveal(gameboard[mouseBoxX][mouseBoxY],0);
       }
     }
     
@@ -309,10 +386,38 @@ function mousePressed(event) {
   }
 }
 
-function mineReveal(cell) {
-  if (cell.revealed || cell.flagged) {
+function mineReveal(cell, generation) {
+  if (cell.revealed && generation == 0){
+    // Implements chording.
+    if (cell.neighborCount != 0) {
+      for (let k = -1; k < 2; k++) {
+        for (let l = -1; l < 2; l++) {
+          let indexX = cell.x + k;
+          let indexY = cell.y + l;
+          if (
+            indexX > -1 &&
+            indexX < gameboard.length &&
+            indexY > -1 &&
+            indexY < gameboard[0].length
+          ) {
+            if (
+              (gameboard[indexX][indexY].x == cell.x &&
+              gameboard[indexX][indexY].y == cell.y) || 
+              gameboard[indexX][indexY].flagged
+            ) {
+              continue;
+            } else {
+              mineReveal(gameboard[indexX][indexY], 1);
+            }
+          }
+        }
+      }
+    }
+    
     return;
-  }
+  } 
+  else if (cell.flagged || cell.revealed) return;
+   
   cell.reveal();
   if (cell.mine) {
     gameState = 5;
@@ -336,7 +441,7 @@ function mineReveal(cell) {
           ) {
             continue;
           } else {
-            mineReveal(gameboard[indexX][indexY]);
+            mineReveal(gameboard[indexX][indexY], 1);
           }
         }
       }
