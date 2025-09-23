@@ -19,8 +19,9 @@ void main(){
       temp = temp + (millis-millisBeforeReset)/1000.;
     }
   }else{
+    float rateOfChange = (millis-baseline)/100000.;
     if(temp > 0.){
-      temp = temp - (millis-baseline)/10000.;
+      temp = temp - rateOfChange;
     }
   }
   

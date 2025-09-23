@@ -20,18 +20,17 @@ void main() {
   // copy position with a fourth coordinate for projection (1.0 is normal)
   vec4 positionVec4 = vec4(aPosition, 1.0);
   if(reset){
-    float temp = 0.;
-    float temp2;
-    float temp3 = (millisBeforeReset - baseline)/10000.;
-    if(temp3 > 0.5) {
-      temp2 = 0.5;
+    float fixedTimeSinceReset;
+    float timeSinceReset = (millisBeforeReset - baseline)/10000.;
+    if(timeSinceReset > 0.5) {
+      fixedTimeSinceReset = 0.5;
     }else{
-      temp2 = (millisBeforeReset - baseline)/10000.;
+      fixedTimeSinceReset = (millisBeforeReset - baseline)/10000.;
     } 
     
-    float currXOffset = temp2 * sin(millis/1000. + positionVec4.y * 8.)/15.;
-    float currYOffset = temp2 * sin(millis/1000. + positionVec4.z * 8.)/15.;
-    float currZOffset = temp2 * sin(millis/1000. + positionVec4.x * 8.)/15.;
+    float currXOffset = fixedTimeSinceReset * sin(millis/1000. + positionVec4.y * 8.)/15.;
+    float currYOffset = fixedTimeSinceReset * sin(millis/1000. + positionVec4.z * 8.)/15.;
+    float currZOffset = fixedTimeSinceReset * sin(millis/1000. + positionVec4.x * 8.)/15.;
     
     if(currXOffset>0.) positionVec4.x += 1./pow((millis-millisBeforeReset)/100.+sqrt(1./currXOffset),2.);
     else positionVec4.x += -1./pow((millis-millisBeforeReset)/100.+sqrt(1./(currXOffset*-1.)),2.);
@@ -44,10 +43,13 @@ void main() {
       
     
   }else{
-    if ((millis-baseline)/10000. <= 0.5) {
-      positionVec4.x += (millis-baseline)/10000. * sin(millis/1000. + positionVec4.y * 8.)/15.;
-      positionVec4.y += (millis-baseline)/10000. * sin(millis/1000. + positionVec4.z * 8.)/15.;     
-      positionVec4.z += (millis-baseline)/10000. * sin(millis/1000. + positionVec4.x * 8.)/15.;
+    
+    float rateOfChange = (millis-baseline)/100000.;
+    
+    if (rateOfChange <= 0.5) {
+      positionVec4.x += rateOfChange * sin(millis/1000. + positionVec4.y * 8.)/15.;
+      positionVec4.y += rateOfChange * sin(millis/1000. + positionVec4.z * 8.)/15.;     
+      positionVec4.z += rateOfChange * sin(millis/1000. + positionVec4.x * 8.)/15.;
 
     }else {
       positionVec4.x += 0.5 * sin(millis/1000. + positionVec4.y * 8.)/15.; 

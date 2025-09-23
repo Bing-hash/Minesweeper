@@ -1,10 +1,10 @@
-let testShader;
+let shapeShader;
 let strokeShader;
 
 function preload(){
   
   
-  testShader = loadShader('test.vert', 'test.frag');
+  shapeShader = loadShader('angry.vert', 'angry.frag');
   
 
 }
@@ -14,6 +14,7 @@ function setup() {
   button.mousePressed(reset);
   
   createCanvas(600, 600, WEBGL);
+  shader(shapeShader);
   strokeShader = baseStrokeShader().modify({
     uniforms: {
       'float millis': () => millis(),
@@ -24,37 +25,42 @@ function setup() {
     },
     declarations: 'vec3 myPosition;',
     'vec3 getLocalPosition': `(vec3 positionVec4) {
+      // Vertex shader specifically for vector elements. Used in this project for the latice that surrounds
+      // the 3D shapes. Mimics angry.vert.
+
       myPosition = positionVec4;
 
+      // Resets the coordinate back to it's original position using a reciprocal function.
       if(reset){
-      float temp = 0.;
-      float temp2;
-      float temp3 = (millisBeforeReset - baseline)/10000.;
-      if(temp3 > 0.5) {
-        temp2 = 0.5;
-      }else{
-        temp2 = (millisBeforeReset - baseline)/10000.;
-      } 
+        float fixedTimeSinceReset;
+        float timeSinceReset = (millisBeforeReset - baseline)/10000.;
+        if(timeSinceReset > 0.5) {
+          fixedTimeSinceReset = 0.5;
+        }else{
+          fixedTimeSinceReset = (millisBeforeReset - baseline)/10000.;
+        } 
 
-      float currXOffset = temp2 * sin(millis/1000. + positionVec4.y * 8.)/15.;
-      float currYOffset = temp2 * sin(millis/1000. + positionVec4.z * 8.)/15.;
-      float currZOffset = temp2 * sin(millis/1000. + positionVec4.x * 8.)/15.;
+        float currXOffset = fixedTimeSinceReset * sin(millis/1000. + positionVec4.y * 8.)/15.;
+        float currYOffset = fixedTimeSinceReset * sin(millis/1000. + positionVec4.z * 8.)/15.;
+        float currZOffset = fixedTimeSinceReset * sin(millis/1000. + positionVec4.x * 8.)/15.;
 
-      if(currXOffset>0.) positionVec4.x += 1./pow((millis-millisBeforeReset)/100.+sqrt(1./currXOffset),2.);
-      else positionVec4.x += -1./pow((millis-millisBeforeReset)/100.+sqrt(1./(currXOffset*-1.)),2.);
+        if(currXOffset>0.) positionVec4.x += 1./pow((millis-millisBeforeReset)/100.+sqrt(1./currXOffset),2.);
+        else positionVec4.x += -1./pow((millis-millisBeforeReset)/100.+sqrt(1./(currXOffset*-1.)),2.);
 
-      if(currYOffset>0.) positionVec4.y += 1./pow((millis-millisBeforeReset)/100.+sqrt(1./currYOffset),2.);
-      else positionVec4.y += -1./pow((millis-millisBeforeReset)/100.+sqrt(1./(currYOffset*-1.)),2.);
+        if(currYOffset>0.) positionVec4.y += 1./pow((millis-millisBeforeReset)/100.+sqrt(1./currYOffset),2.);
+        else positionVec4.y += -1./pow((millis-millisBeforeReset)/100.+sqrt(1./(currYOffset*-1.)),2.);
 
-      if(currZOffset>0.) positionVec4.z += 1./pow((millis-millisBeforeReset)/100.+sqrt(1./currZOffset),2.);
-      else positionVec4.z += -1./pow((millis-millisBeforeReset)/100.+sqrt(1./(currZOffset*-1.)),2.);
+        if(currZOffset>0.) positionVec4.z += 1./pow((millis-millisBeforeReset)/100.+sqrt(1./currZOffset),2.);
+        else positionVec4.z += -1./pow((millis-millisBeforeReset)/100.+sqrt(1./(currZOffset*-1.)),2.);
 
 
     }else{
-      if ((millis-baseline)/10000. <= 0.5) {
-        positionVec4.x += (millis-baseline)/10000. * sin(millis/1000. + positionVec4.y * 8.)/15.;
-        positionVec4.y += (millis-baseline)/10000. * sin(millis/1000. + positionVec4.z * 8.)/15.;     
-        positionVec4.z += (millis-baseline)/10000. * sin(millis/1000. + positionVec4.x * 8.)/15.;
+      float rateOfChange = (millis-baseline)/100000.;
+
+      if (rateOfChange <= 0.5) {
+        positionVec4.x += rateOfChange * sin(millis/1000. + positionVec4.y * 8.)/15.;
+        positionVec4.y += rateOfChange * sin(millis/1000. + positionVec4.z * 8.)/15.;     
+        positionVec4.z += rateOfChange * sin(millis/1000. + positionVec4.x * 8.)/15.;
 
       }else {
         positionVec4.x += 0.5 * sin(millis/1000. + positionVec4.y * 8.)/15.; 
@@ -74,37 +80,37 @@ function setup() {
 function draw() {
   
   background('black');
-
+  shaderAnimation();
   
+  
+
+  orbitControl();
+
+}
+
+function shaderAnimation(){
   push();
   shader(strokeShader);
-  // shader(testShader);
-  
-  
-  
-  testShader.setUniform('millis', millis());
-  strokeShader.setUniform('time', millis());
-  
+  // Set uniforms to the millis timer. Used for animations in shader
+  shapeShader.setUniform('millis', millis());
+  strokeShader.setUniform('millis', millis());
   sphere(50, 10, 10);
   pop();
-  // plane(20,20);
-  // line(10,10,20,20,10,20);
-  orbitControl();
-  // background(220);
-  
-  // box(100,100);
-  // orbitControl();
 }
 
 const reset = async () => {
-  testShader.setUniform('millisBeforeReset', millis());
+  // Giving the shader program a timestamp of when the reset it called.
+  shapeShader.setUniform('millisBeforeReset', millis());
   strokeShader.setUniform('millisBeforeReset', millis());
-  testShader.setUniform('reset', true);
+  // Indicating to the shader program that the reset animation needs to be played. 
+  shapeShader.setUniform('reset', true);
   strokeShader.setUniform('reset', true);
-  await sleep(1000);
-  testShader.setUniform('baseline', millis());
+  await sleep(2000);
+  // Giving the shader program a new basline time to start the animation from.
+  shapeShader.setUniform('baseline', millis());
   strokeShader.setUniform('baseline', millis());
-  testShader.setUniform('reset', false);
+  // Indicating to the shader program that the reset animation is now over.
+  shapeShader.setUniform('reset', false);
   strokeShader.setUniform('reset', false);
 }
 
