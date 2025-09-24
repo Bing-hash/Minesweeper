@@ -4,9 +4,12 @@ uniform bool reset;
 uniform float baseline;
 uniform float millisBeforeReset;
 
+uniform vec2 screenSize;
+uniform float random;
+
+varying vec2 vTexCoord;
 
 void main(){
-
   float temp = 1.;
   if(reset){
     float temp2 = (millisBeforeReset - baseline)/10000.;
@@ -26,6 +29,7 @@ void main(){
   }
   
   
+  vec2 position = gl_FragCoord.xy / screenSize;
   
-  gl_FragColor = vec4(1.,temp,temp,1.);
+  gl_FragColor = vec4(sin(position.x*millis/1000.)+1.7, 0., 1.,1.);
 }

@@ -1,5 +1,7 @@
 /*
   To-do:
+    - Fix cording; cording is allowed when the amount of flags around the clicked square
+    is less than the number on the square.
     - Fix inconsistencies accross gamestates in draw loop. Functions should be in the same 
     order.
     - Change 3D mine to draw from the sketch file, similar to others
@@ -164,6 +166,7 @@ function draw() {
   }
   
   //Game state IFs
+  // Setup game
   else if (gameState == 3) {
     gameboardPainting = createGraphics(boardRow * cellWidth, boardCol * cellWidth);
     currCellCount = 0;
@@ -172,24 +175,28 @@ function draw() {
     baselineForBoxAnimationTimer = frameCount;
     
     gameState = 4;
+
+  // Gameloop
   } else if (gameState == 4) { 
     drawGameboard();
     drawGamebox();
     drawDetectionSpace();
+
     currCellCount = checkOpenCellCount(gameboard);
     if (currCellCount == cellWinTotal) {
       gameState = 6;
     }
+    
+  // Losing state
   } else if (gameState == 5) {
-    
-    
-    
     drawGameboard();
     drawGamebox();
+    
+    
+    
   } else if (gameState == 6) {
-    drawGamebox();
-    
     drawGameboard();
+    drawGamebox();
    
     gameboardPainting.stroke("green");
     gameboardPainting.strokeWeight(10);

@@ -73,7 +73,8 @@ function setup() {
     }`
   });
   
-  
+ 
+  shapeShader.setUniform("screenSize", [width, height]);
   
 }
 
@@ -85,6 +86,8 @@ function draw() {
   
 
   orbitControl();
+  // let colorValue = get(mouseX, mouseY);
+  // console.log(colorValue);
 
 }
 
@@ -92,6 +95,7 @@ function shaderAnimation(){
   push();
   shader(strokeShader);
   // Set uniforms to the millis timer. Used for animations in shader
+  
   shapeShader.setUniform('millis', millis());
   strokeShader.setUniform('millis', millis());
   sphere(50, 10, 10);
